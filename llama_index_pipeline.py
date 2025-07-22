@@ -18,7 +18,7 @@ DATA_DIR = "data"
 CHROMA_PERSIST_DIR = "./chroma_store"
 NEO4J_URL = "bolt://localhost:7687"
 NEO4J_USERNAME = "neo4j"
-NEO4J_PASSWORD = "your_password"  # 🔒 Replace with your actual password
+NEO4J_PASSWORD = "test1234"  # 🔒 Replace with your actual password
 
 # --- Step 1: Load documents ---
 print("📂 Loading documents...")
