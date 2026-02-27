@@ -1,23 +1,29 @@
 [project]
 name = "mailboxtollm"
-version = "0.1.0"
+version = "0.2.0"
 description = "Transform MBOX or PST email archives into a knowledge graph and vector store for RAG applications"
 authors = [
   { name = "Ola Lundström", email = "ola@allemo.se" }
 ]
 readme = "README.md"
 license = { text = "MIT" }
-requires-python = ">=3.8"
+requires-python = ">=3.10"
 
 dependencies = [
+  "email_reply_parser",
   "networkx",
   "faiss-cpu",
   "tqdm",
-  "sentence-transformers",
-  "email_reply_parser",
-  "neo4j",
-  "pywin32"
+  "sentence-transformers>=2.6",
+  "neo4j>=5.19",
+  "python-dotenv",
 ]
+
+[project.optional-dependencies]
+outlook = ["pywin32"]
+llama = ["llama-index>=0.10.37", "chromadb>=0.4.24"]
+ner = ["spacy>=3.5"]
+dev = ["pytest"]
 
 [project.scripts]
 mailboxtollm = "main:main"

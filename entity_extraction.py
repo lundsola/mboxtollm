@@ -1,26 +1,31 @@
 import json
+import logging
 import os
+
 import spacy
 from tqdm import tqdm
 
-# Enable GPU if available
-try:
-    spacy.require_gpu()
-    print("✅ spaCy will use GPU")
-except Exception:
-    print("⚠️  spaCy is falling back to CPU")
+from config import INPUT_FILE
 
-nlp = spacy.load("en_core_web_trf")
+logger = logging.getLogger(__name__)
 
-INPUT_FILE = "data/pst_output.jsonl"
 OUTPUT_FILE = "data/triplets_with_email.jsonl"
 
 
-def extract_entities(text):
+def _load_nlp():
+    try:
+        spacy.require_gpu()
+        logger.info("spaCy will use GPU")
+    except Exception:
+        logger.info("spaCy falling back to CPU")
+    return spacy.load("en_core_web_trf")
+
+
+def extract_entities(nlp, text):
     doc = nlp(text)
     people = [ent.text for ent in doc.ents if ent.label_ == "PERSON"]
     dates = [ent.text for ent in doc.ents if ent.label_ == "DATE"]
-    orgs = [ent.text for ent in doc.ents if ent.label_ in ["ORG", "PRODUCT"]]
+    orgs = [ent.text for ent in doc.ents if ent.label_ in ("ORG", "PRODUCT")]
 
     triplets = []
     for person in people:
@@ -36,16 +41,19 @@ def extract_entities(text):
 
 
 def main():
+    logging.basicConfig(level=logging.INFO)
+
     if not os.path.exists(INPUT_FILE):
-        print(f"❌ Missing file: {INPUT_FILE}")
+        logger.error("Missing file: %s", INPUT_FILE)
         return
 
-    print(f"📥 Reading messages from {INPUT_FILE}")
+    nlp = _load_nlp()
+
+    logger.info("Reading messages from %s", INPUT_FILE)
     with open(INPUT_FILE, "r", encoding="utf-8") as f:
         lines = f.readlines()
 
-    total = len(lines)
-    print(f"⚙️ Processing {total} messages with GPU-backed spaCy pipeline...")
+    logger.info("Processing %d messages...", len(lines))
 
     with open(OUTPUT_FILE, "w", encoding="utf-8") as out_file:
         for line in tqdm(lines):
@@ -56,17 +64,17 @@ def main():
             if not email_id or not body.strip():
                 continue
 
-            triplets = extract_entities(body)
+            triplets = extract_entities(nlp, body)
             for subj, pred, obj in triplets:
                 enriched = {
                     "subject": subj,
                     "predicate": pred,
                     "object": obj,
-                    "email_id": email_id
+                    "email_id": email_id,
                 }
                 out_file.write(json.dumps(enriched) + "\n")
 
-    print(f"✅ Done! Triplets written to {OUTPUT_FILE}")
+    logger.info("Done! Triplets written to %s", OUTPUT_FILE)
 
 
 if __name__ == "__main__":

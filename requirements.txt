@@ -1,11 +1,10 @@
 email_reply_parser
 networkx
 faiss-cpu
-sentence-transformers
+sentence-transformers>=2.6
 tqdm
-llama-index==0.10.37
-chromadb==0.4.24
-sentence-transformers==2.6.1
-neo4j==5.19.0
-tqdm
-
+spacy>=3.5
+llama-index>=0.10.37
+chromadb>=0.4.24
+neo4j>=5.19
+python-dotenv
