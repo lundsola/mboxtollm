@@ -1,10 +1,13 @@
-.PHONY: install run extract-pst extract-eml export-neo4j test clean
+.PHONY: install run serve extract-pst extract-eml export-neo4j test clean
 
 install:
 	pip install -e ".[dev]"
 
 run:
 	python main.py
+
+serve:
+	uvicorn api:app --host 0.0.0.0 --port 8000 --reload
 
 extract-pst:
 	python extract_pst_to_json.py

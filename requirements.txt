@@ -1,10 +1,17 @@
 email_reply_parser
 networkx
-faiss-cpu
-sentence-transformers>=2.6
 tqdm
-spacy>=3.5
-llama-index>=0.10.37
-chromadb>=0.4.24
-neo4j>=5.19
+sentence-transformers>=2.6
 python-dotenv
+chromadb>=0.4.24
+anthropic>=0.39
+fastapi>=0.115
+uvicorn>=0.32
+python-multipart>=0.0.12
+
+# Optional
+# faiss-cpu
+# neo4j>=5.19
+# spacy>=3.5
+# llama-index>=0.10.37
+# pywin32  # Windows only

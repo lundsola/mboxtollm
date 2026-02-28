@@ -1,25 +1,34 @@
 # mboxtollm
 
-**mboxtollm** is an open-source pipeline to transform large `.mbox` and `.pst` email archives into a threaded, deduplicated **knowledge graph** and **vector store** — optimized for use in Retrieval-Augmented Generation (RAG) workflows with ChatGPT, Ollama, or other LLMs.
+**mboxtollm** is a service that lets you upload old email archives (`.mbox`, `.eml`, `.pst`), search them semantically, and use AI to generate summaries and storylines from decades of email history.
+
+Built for people who have 25+ years of email archives and want to actually find things in them.
 
 ---
 
 ## Features
 
-- Parses `.mbox` files and `.eml` folders without loading everything into memory
-- Extracts Outlook `.pst` archives via the Windows COM API
-- Extracts and deduplicates new email content (removing quoted replies)
-- Reconstructs threads using `Message-ID`, `In-Reply-To`, and `conversation_id`
-- Builds an in-memory graph with `networkx`
-- Embeds emails using `sentence-transformers` (GPU-accelerated when available)
-- Stores vector embeddings in FAISS for fast semantic search
-- Extracts entities and triplets with spaCy for knowledge graph construction
-- Exports to Neo4j for persistent graph storage
-- Integrates with LlamaIndex + ChromaDB for advanced RAG pipelines
+**Email ingestion**
+- Parses `.mbox` files and `.eml` folders
+- Extracts Outlook `.pst` archives via Windows COM API
+- Cleans and deduplicates content (strips quoted replies)
+- Reconstructs conversation threads from email headers
+
+**Search & AI**
+- Semantic search powered by sentence-transformers + ChromaDB
+- Ask natural-language questions answered by Claude (Anthropic)
+- Summarize conversation threads with one API call
+- Generate chronological storylines about any topic from your archive
+
+**API**
+- REST API (FastAPI) for all operations
+- Upload files, search, ask questions, get storylines
+- Background processing for large archives
+- Persistent storage — upload once, search forever
 
 ---
 
-## Install
+## Quick start
 
 ```bash
 git clone https://github.com/lundsola/mboxtollm.git
@@ -27,88 +36,99 @@ cd mboxtollm
 python3 -m venv venv
 source venv/bin/activate
 pip install -e .
+
+# Configure
+cp .env.example .env
+# Edit .env — set at minimum ANTHROPIC_API_KEY
+
+# Start the API server
+make serve
 ```
 
-### Optional extras
+The API is now running at `http://localhost:8000`. Visit `http://localhost:8000/docs` for interactive API documentation.
+
+---
+
+## API endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/upload` | Upload .mbox or .jsonl file for processing |
+| `POST` | `/search` | Semantic search across stored emails |
+| `POST` | `/ask` | Ask a question — retrieves context, answers with Claude |
+| `POST` | `/summarize` | Summarize a thread (by conversation_id or message_ids) |
+| `POST` | `/storyline` | Generate a chronological narrative about a topic |
+| `GET` | `/threads/{id}` | Get all messages in a conversation |
+| `GET` | `/collections` | List all email collections |
+| `GET` | `/collections/{name}/stats` | Collection statistics |
+| `GET` | `/health` | Health check |
+
+### Example: Upload and search
 
 ```bash
-# For Outlook PST extraction (Windows only)
-pip install -e ".[outlook]"
+# Upload an archive
+curl -X POST http://localhost:8000/upload \
+  -F "file=@my_emails.mbox" \
+  -F "collection=work"
 
-# For LlamaIndex RAG pipeline
-pip install -e ".[llama]"
+# Search
+curl -X POST http://localhost:8000/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "budget meeting Q3", "collection": "work"}'
 
-# For entity/triplet extraction with spaCy
-pip install -e ".[ner]"
-python -m spacy download en_core_web_trf
+# Ask a question
+curl -X POST http://localhost:8000/ask \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What did we decide about the office move?"}'
 
-# For development (pytest)
-pip install -e ".[dev]"
+# Generate a storyline
+curl -X POST http://localhost:8000/storyline \
+  -H "Content-Type: application/json" \
+  -d '{"topic": "the Johnson project from 2003 to 2005"}'
+```
+
+---
+
+## CLI usage
+
+The original CLI still works for quick local processing:
+
+```bash
+# Process a file and search from the terminal
+python main.py -i data/my_emails.mbox -q "project deadline"
+
+# Extract emails to JSONL first
+make extract-eml      # from .eml folder
+make extract-pst      # from Outlook PST (Windows only)
 ```
 
 ---
 
 ## Configuration
 
-Copy the example environment file and edit it:
-
 ```bash
 cp .env.example .env
 ```
 
-Key settings:
-
 | Variable | Default | Description |
 |---|---|---|
-| `NEO4J_URI` | `bolt://localhost:7687` | Neo4j connection URI |
-| `NEO4J_USER` | `neo4j` | Neo4j username |
-| `NEO4J_PASSWORD` | `changeme` | Neo4j password |
-| `INPUT_FILE` | `data/pst_output.jsonl` | Default input file |
+| `ANTHROPIC_API_KEY` | (required) | Your Anthropic API key |
+| `ANTHROPIC_MODEL` | `claude-sonnet-4-20250514` | Claude model to use |
 | `EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformer model |
+| `CHROMA_PERSIST_DIR` | `./chroma_store` | Where ChromaDB stores data |
+| `UPLOAD_DIR` | `data/uploads` | Where uploaded files are saved |
+| `API_HOST` | `0.0.0.0` | API server host |
+| `API_PORT` | `8000` | API server port |
 
 ---
 
-## Usage
-
-### 1. Extract emails to JSONL
-
-From an `.eml` folder:
-```bash
-make extract-eml
-```
-
-From Outlook PST (Windows only):
-```bash
-make extract-pst
-```
-
-### 2. Run the pipeline
+## Optional extras
 
 ```bash
-# Default: loads data/pst_output.jsonl, builds graph + embeddings, runs example query
-make run
-
-# Custom input and query
-python main.py -i data/my_emails.mbox -q "project deadline"
-
-# Verbose logging
-python main.py -v
-```
-
-### 3. Export to Neo4j
-
-```bash
-# Export email thread graph
-make export-neo4j
-
-# Export entity triplets
-python triplets_to_neo4js.py
-```
-
-### 4. Run LlamaIndex RAG pipeline
-
-```bash
-python llama_index_pipeline.py
+pip install -e ".[outlook]"   # PST extraction (Windows only)
+pip install -e ".[ner]"       # Entity extraction with spaCy
+pip install -e ".[neo4j]"     # Neo4j graph export
+pip install -e ".[dev]"       # pytest + httpx for testing
 ```
 
 ---
@@ -116,22 +136,29 @@ python llama_index_pipeline.py
 ## Architecture
 
 ```
-.mbox / .eml / .pst
-        |
-        v
-  +--------------+
-  | Email Parser |  -> JSONL (cleaned, deduplicated)
-  +------+-------+
+Upload .mbox/.eml/.pst
          |
-    +----+----+
-    v         v
-+--------+ +----------+
-| Graph  | | Embedder |
-|Builder | | (FAISS)  |
-+---+----+ +----+-----+
-    |           |
-    v           v
-  Neo4j    Semantic Search / RAG
+         v
+  +---------------+
+  | Email Parser  |  parse, clean, dedup, thread
+  +-------+-------+
+          |
+    +-----+------+
+    v            v
++--------+  +----------+
+| Thread |  | ChromaDB |  persistent vector store
+| Graph  |  +-----+----+
++--------+        |
+                  v
+          +-------+--------+
+          | FastAPI Server |
+          +--+----+----+---+
+             |    |    |
+             v    v    v
+         search  ask  storyline
+                  |    |
+                  v    v
+              Claude (Anthropic)
 ```
 
 ---
