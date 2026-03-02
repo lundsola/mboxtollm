@@ -1,6 +1,6 @@
 [project]
 name = "mailboxtollm"
-version = "0.3.0"
+version = "0.4.0"
 description = "Upload old email archives, search them semantically, and generate storylines with AI"
 authors = [
   { name = "Ola Lundström", email = "ola@allemo.se" }
@@ -16,18 +16,20 @@ dependencies = [
   "sentence-transformers>=2.6",
   "python-dotenv",
   "chromadb>=0.4.24",
-  "anthropic>=0.39",
   "fastapi>=0.115",
   "uvicorn>=0.32",
   "python-multipart>=0.0.12",
 ]
 
 [project.optional-dependencies]
+anthropic = ["anthropic>=0.39"]
+openai = ["openai>=1.0"]
+google = ["google-generativeai>=0.8"]
+all-llms = ["anthropic>=0.39", "openai>=1.0", "google-generativeai>=0.8"]
 outlook = ["pywin32"]
 llama = ["llama-index>=0.10.37"]
 ner = ["spacy>=3.5"]
 neo4j = ["neo4j>=5.19"]
-faiss = ["faiss-cpu"]
 dev = ["pytest", "httpx"]
 
 [project.scripts]

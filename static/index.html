@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>mboxtollm - Email Archive Search</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header>
+    <h1>mboxtollm</h1>
+    <p class="subtitle">Search, summarize, and build storylines from your email archives</p>
+  </header>
+
+  <nav>
+    <button class="tab active" data-tab="search">Search</button>
+    <button class="tab" data-tab="ask">Ask</button>
+    <button class="tab" data-tab="storyline">Storyline</button>
+    <button class="tab" data-tab="upload">Upload</button>
+  </nav>
+
+  <main>
+    <!-- Search tab -->
+    <section id="tab-search" class="tab-content active">
+      <div class="input-group">
+        <input type="text" id="search-query" placeholder="Search your emails..." autofocus>
+        <button id="search-btn" onclick="doSearch()">Search</button>
+      </div>
+      <div class="options-row">
+        <label>Collection: <input type="text" id="search-collection" value="emails" class="small-input"></label>
+        <label>Results: <input type="number" id="search-k" value="10" min="1" max="50" class="small-input"></label>
+      </div>
+      <div id="search-results" class="results"></div>
+    </section>
+
+    <!-- Ask tab -->
+    <section id="tab-ask" class="tab-content">
+      <div class="input-group">
+        <input type="text" id="ask-query" placeholder="Ask a question about your emails...">
+        <button id="ask-btn" onclick="doAsk()">Ask</button>
+      </div>
+      <div class="options-row">
+        <label>Collection: <input type="text" id="ask-collection" value="emails" class="small-input"></label>
+      </div>
+      <div id="ask-results" class="results"></div>
+    </section>
+
+    <!-- Storyline tab -->
+    <section id="tab-storyline" class="tab-content">
+      <div class="input-group">
+        <input type="text" id="storyline-topic" placeholder="Describe a topic, e.g. 'the office move in 2005'">
+        <button id="storyline-btn" onclick="doStoryline()">Generate</button>
+      </div>
+      <div class="options-row">
+        <label>Collection: <input type="text" id="storyline-collection" value="emails" class="small-input"></label>
+        <label>Max emails: <input type="number" id="storyline-k" value="20" min="1" max="100" class="small-input"></label>
+      </div>
+      <div id="storyline-results" class="results"></div>
+    </section>
+
+    <!-- Upload tab -->
+    <section id="tab-upload" class="tab-content">
+      <div class="upload-area" id="drop-zone">
+        <p>Drag & drop your <strong>.mbox</strong> or <strong>.jsonl</strong> file here</p>
+        <p class="small">or click to browse</p>
+        <input type="file" id="file-input" accept=".mbox,.jsonl" hidden>
+      </div>
+      <div class="options-row">
+        <label>Collection name: <input type="text" id="upload-collection" value="emails" class="small-input"></label>
+      </div>
+      <div id="upload-status" class="results"></div>
+
+      <div class="stats-section">
+        <h3>Collections</h3>
+        <div id="collections-list"></div>
+        <button class="secondary" onclick="loadCollections()">Refresh</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span id="health-status">Checking...</span>
+  </footer>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

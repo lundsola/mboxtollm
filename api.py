@@ -6,9 +6,11 @@ from contextlib import asynccontextmanager
 from typing import Optional
 
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Query, UploadFile
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from config import ANTHROPIC_API_KEY, UPLOAD_DIR
+from config import ANTHROPIC_API_KEY, OPENAI_API_KEY, GOOGLE_API_KEY, LLM_PROVIDER, UPLOAD_DIR
 from graph_builder import build_thread_graph
 from load_messages import load_messages
 from storage import EmailStore
@@ -36,19 +38,23 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="mboxtollm",
     description="Search, summarize, and build storylines from email archives",
-    version="0.3.0",
+    version="0.4.0",
     lifespan=lifespan,
 )
 
 
+def _has_any_llm_key() -> bool:
+    return bool(ANTHROPIC_API_KEY or OPENAI_API_KEY or GOOGLE_API_KEY)
+
+
 def _get_llm():
-    """Lazy-load the LLM provider (only when summarize/storyline features are used)."""
+    """Lazy-load the LLM provider."""
     global llm
     if llm is None:
-        if not ANTHROPIC_API_KEY:
+        if not _has_any_llm_key():
             raise HTTPException(
                 status_code=503,
-                detail="ANTHROPIC_API_KEY not configured. Set it in your .env file.",
+                detail="No LLM API key configured. Set ANTHROPIC_API_KEY, OPENAI_API_KEY, or GOOGLE_API_KEY in .env",
             )
         from llm_provider import LLMProvider
 
@@ -106,10 +112,10 @@ def _process_upload(filepath: str, collection: str):
         logger.exception("Failed to process upload: %s", filepath)
 
 
-# --- Endpoints ---
+# --- API Endpoints ---
 
 
-@app.post("/upload")
+@app.post("/api/upload")
 async def upload_file(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
@@ -126,7 +132,6 @@ async def upload_file(
             detail=f"Unsupported format: {suffix}. Use .mbox or .jsonl",
         )
 
-    # Save to upload directory with a unique name
     upload_id = uuid.uuid4().hex[:12]
     safe_name = f"{upload_id}{suffix}"
     filepath = os.path.join(UPLOAD_DIR, safe_name)
@@ -135,7 +140,6 @@ async def upload_file(
         shutil.copyfileobj(file.file, f)
 
     logger.info("Saved upload %s (%s)", safe_name, file.filename)
-
     background_tasks.add_task(_process_upload, filepath, collection)
 
     return {
@@ -143,20 +147,19 @@ async def upload_file(
         "upload_id": upload_id,
         "filename": file.filename,
         "collection": collection,
-        "message": "File uploaded. Processing in background.",
     }
 
 
-@app.post("/search")
+@app.post("/api/search")
 async def search(req: SearchRequest):
     """Semantic search across stored emails."""
     results = store.search(query=req.query, collection_name=req.collection, k=req.k)
     return {"query": req.query, "count": len(results), "results": results}
 
 
-@app.post("/ask")
+@app.post("/api/ask")
 async def ask(req: AskRequest):
-    """Ask a question — retrieves relevant emails then answers using Claude."""
+    """Ask a question — retrieves relevant emails then answers using the configured LLM."""
     provider = _get_llm()
 
     context = store.search(query=req.question, collection_name=req.collection, k=req.k)
@@ -174,9 +177,9 @@ async def ask(req: AskRequest):
     }
 
 
-@app.post("/summarize")
+@app.post("/api/summarize")
 async def summarize(req: SummarizeRequest):
-    """Summarize a conversation thread using Claude."""
+    """Summarize a conversation thread using the configured LLM."""
     provider = _get_llm()
 
     if req.conversation_id:
@@ -197,13 +200,10 @@ async def summarize(req: SummarizeRequest):
         raise HTTPException(status_code=404, detail="No messages found")
 
     summary = provider.summarize_thread(messages)
-    return {
-        "message_count": len(messages),
-        "summary": summary,
-    }
+    return {"message_count": len(messages), "summary": summary}
 
 
-@app.post("/storyline")
+@app.post("/api/storyline")
 async def storyline(req: StorylineRequest):
     """Generate a chronological narrative about a topic from the email archive."""
     provider = _get_llm()
@@ -212,7 +212,6 @@ async def storyline(req: StorylineRequest):
     if not context:
         raise HTTPException(status_code=404, detail="No relevant emails found")
 
-    # Sort by date for chronological narrative
     context.sort(key=lambda m: m.get("date", ""))
 
     story = provider.generate_storyline(context, req.topic)
@@ -227,7 +226,7 @@ async def storyline(req: StorylineRequest):
     }
 
 
-@app.get("/threads/{conversation_id}")
+@app.get("/api/threads/{conversation_id}")
 async def get_thread(conversation_id: str, collection: str = "emails"):
     """Get all messages in a conversation thread."""
     messages = store.get_thread(conversation_id, collection_name=collection)
@@ -236,19 +235,40 @@ async def get_thread(conversation_id: str, collection: str = "emails"):
     return {"conversation_id": conversation_id, "count": len(messages), "messages": messages}
 
 
-@app.get("/collections")
+@app.get("/api/collections")
 async def list_collections():
     """List all email collections."""
     return {"collections": store.list_collections()}
 
 
-@app.get("/collections/{name}/stats")
+@app.get("/api/collections/{name}/stats")
 async def collection_stats(name: str):
     """Get stats for a collection."""
     return store.collection_stats(name)
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health():
     """Health check."""
-    return {"status": "ok", "llm_configured": bool(ANTHROPIC_API_KEY)}
+    return {
+        "status": "ok",
+        "llm_provider": LLM_PROVIDER,
+        "llm_configured": _has_any_llm_key(),
+    }
+
+
+# --- Serve web frontend ---
+
+STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+
+if os.path.isdir(STATIC_DIR):
+    app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
+@app.get("/")
+async def index():
+    """Serve the web frontend."""
+    index_path = os.path.join(STATIC_DIR, "index.html")
+    if os.path.exists(index_path):
+        return FileResponse(index_path)
+    return {"message": "mboxtollm API. Visit /docs for API documentation."}

@@ -33,7 +33,7 @@ def client():
 
 
 def test_health(client):
-    response = client.get("/health")
+    response = client.get("/api/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "ok"
@@ -41,7 +41,7 @@ def test_health(client):
 
 def test_upload_unsupported_format(client):
     response = client.post(
-        "/upload",
+        "/api/upload",
         files={"file": ("test.txt", b"some content", "text/plain")},
     )
     assert response.status_code == 400
@@ -49,13 +49,13 @@ def test_upload_unsupported_format(client):
 
 
 def test_collections(client):
-    response = client.get("/collections")
+    response = client.get("/api/collections")
     assert response.status_code == 200
 
 
 def test_search_empty(client):
     response = client.post(
-        "/search", json={"query": "test", "collection": "test_empty"}
+        "/api/search", json={"query": "test", "collection": "test_empty"}
     )
     assert response.status_code == 200
     assert response.json()["count"] == 0
@@ -84,7 +84,7 @@ def test_upload_and_search(client):
     content = "\n".join(json.dumps(m) for m in messages)
 
     response = client.post(
-        "/upload",
+        "/api/upload",
         files={"file": ("test.jsonl", content.encode(), "application/octet-stream")},
         data={"collection": "test_search"},
     )
@@ -92,7 +92,7 @@ def test_upload_and_search(client):
     assert response.json()["status"] == "processing"
 
     response = client.post(
-        "/search",
+        "/api/search",
         json={"query": "financial revenue", "collection": "test_search"},
     )
     assert response.status_code == 200
@@ -103,12 +103,12 @@ def test_upload_and_search(client):
 def test_storyline_no_api_key(client):
     """Storyline should fail gracefully when no API key is configured."""
     response = client.post(
-        "/storyline",
+        "/api/storyline",
         json={"topic": "test topic", "collection": "nonexistent"},
     )
     assert response.status_code in (503, 404)
 
 
 def test_summarize_missing_params(client):
-    response = client.post("/summarize", json={"collection": "emails"})
+    response = client.post("/api/summarize", json={"collection": "emails"})
     assert response.status_code == 400
