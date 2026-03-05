@@ -121,15 +121,15 @@ async def upload_file(
     file: UploadFile = File(...),
     collection: str = Query(default="emails", description="Target collection name"),
 ):
-    """Upload an .mbox or .jsonl email archive for processing."""
+    """Upload an .mbox, .pst, or .jsonl email archive for processing."""
     if not file.filename:
         raise HTTPException(status_code=400, detail="No filename provided")
 
     suffix = os.path.splitext(file.filename)[1].lower()
-    if suffix not in (".mbox", ".jsonl"):
+    if suffix not in (".mbox", ".jsonl", ".pst"):
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported format: {suffix}. Use .mbox or .jsonl",
+            detail=f"Unsupported format: {suffix}. Use .mbox, .pst, or .jsonl",
         )
 
     upload_id = uuid.uuid4().hex[:12]
