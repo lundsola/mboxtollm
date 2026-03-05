@@ -17,11 +17,10 @@ venv/
 .idea/
 
 # Data & cache
-data/*.mbox
+data/
+chroma_store/
 *.faiss
 *.npy
-*.json
-*.jsonl
 *.csv
 *.db
 
@@ -31,3 +30,4 @@ data/*.mbox
 # Logs and temp
 *.log
 *.tmp
+.pytest_cache/
