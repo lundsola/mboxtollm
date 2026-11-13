@@ -6,6 +6,9 @@ The opt-in TerminusDB backend is documented in [TERMINUSDB.md](TERMINUSDB.md).
 The existing web application below still uses ChromaDB; no data is migrated
 automatically.
 
+Optional relation judgments via TypeSafe Jev are described in [JEV.md](JEV.md).
+They are disabled by default and not yet connected to ingestion or search.
+
 **mboxtollm** is a service that lets you upload old email archives (`.mbox`, `.eml`, `.pst`), search them semantically, and use AI to generate summaries and storylines from decades of email history.
 
 Built for people who have 25+ years of email archives and want to actually find things in them.
