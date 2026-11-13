@@ -17,3 +17,8 @@ until the new path has integration tests. Vector indexes are derived data.
 ## Current milestone
 An opt-in CLI imports MBOX into a dedicated TerminusDB database and retrieves
 reply-connected threads. No web API integration or vector search migration yet.
+
+The semantic pilot in SEMANTIC.md adds separate subject/body vectors, retrieval
+tools and optional Jev assessment persistence. Exact vector scanning is for small
+pilots only. Do not claim production-scale or semantic-quality verification from
+synthetic encoder tests. Run test_semantic*.py and test_jev*.py as well.

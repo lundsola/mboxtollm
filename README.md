@@ -7,7 +7,12 @@ The existing web application below still uses ChromaDB; no data is migrated
 automatically.
 
 Optional relation judgments via TypeSafe Jev are described in [JEV.md](JEV.md).
-They are disabled by default and not yet connected to ingestion or search.
+They are disabled by default and available through the explicit semantic pilot,
+not the legacy web application.
+
+The new [semantic pilot](SEMANTIC.md) provides subject/body embeddings,
+agent-facing retrieval operations and explicit Jev-to-TerminusDB assessment
+persistence. This remains separate from the legacy web application.
 
 **mboxtollm** is a service that lets you upload old email archives (`.mbox`, `.eml`, `.pst`), search them semantically, and use AI to generate summaries and storylines from decades of email history.
 

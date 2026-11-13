@@ -80,3 +80,17 @@ class PilotTests(unittest.TestCase):
         docs = list(client.query_document({'@type': 'Email', 'archive': 'acceptance'}))
         self.assertEqual(len(docs), 3)
         self.assertEqual(len(store.get_thread('acceptance', '<root@example.test>')), 2)
+        from relation_store import AssessmentStore
+        from jev_relations import JevRelationEvaluator, QUESTIONS
+        from unittest.mock import patch
+        assessments = AssessmentStore(client)
+        assessments.install_schema()
+        evaluator = JevRelationEvaluator(enabled=True, transport=lambda *_: {
+            'model':'jev-synthetic',
+            'answers':{q:{'type':'noul','noul':0.8} for q in QUESTIONS},
+        })
+        with patch.dict(os.environ, {'TYPESAFE_API_KEY':'synthetic-only'}):
+            records = evaluator.evaluate(docs[0], docs[1])
+        assessments.save(records)
+        assessments.save(records)
+        self.assertEqual(len(list(assessments.list_for_archive('acceptance'))), 3)
