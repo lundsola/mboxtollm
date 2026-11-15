@@ -12,8 +12,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--archive',required=True)
     parser.add_argument('--index',required=True,help='Derived SQLite index path; protect like email data')
-    parser.add_argument('--model-path',required=True,help='Preinstalled local SentenceTransformer model')
-    parser.add_argument('--model-revision',required=True,help='Immutable revision used to install the local model')
+    parser.add_argument('--embedding-provider',choices=['local','gemini'],default='local')
+    parser.add_argument('--allow-google',action='store_true',help='Approve sending indexed content and search queries to Google')
+    parser.add_argument('--model-path',help='Preinstalled local SentenceTransformer model')
+    parser.add_argument('--model-revision',help='Immutable revision used to install the local model')
     sub = parser.add_subparsers(dest='command',required=True)
     sub.add_parser('index')
     search = sub.add_parser('search')
@@ -29,7 +31,16 @@ def main():
     args = parser.parse_args()
     if args.command == 'assess' and not args.allow_external:
         parser.error('assess requires --allow-external; mail will be sent to TypeSafe')
-    index = SemanticIndex(args.index,LocalEncoder(args.model_path,args.model_revision))
+    if args.embedding_provider == 'gemini':
+        if not args.allow_google:
+            parser.error('Gemini requires --allow-google; content and queries leave this machine')
+        from gemini_encoder import GeminiEncoder
+        encoder = GeminiEncoder(enabled=True)
+    else:
+        if not args.model_path or not args.model_revision:
+            parser.error('Local embeddings require --model-path and --model-revision')
+        encoder = LocalEncoder(args.model_path,args.model_revision)
+    index = SemanticIndex(args.index,encoder)
     try:
         if args.command == 'search':
             print(json.dumps(index.search(args.query,args.archive,args.k),ensure_ascii=False))

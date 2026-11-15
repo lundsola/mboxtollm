@@ -88,7 +88,8 @@ class SemanticIndex:
             raise ValueError('Invalid search parameters')
         if not self.encoder.fits(query):
             raise ValueError('Query exceeds embedding token budget')
-        q = unit(self.encoder.encode([query])[0])
+        encode_query = getattr(self.encoder, 'encode_query', self.encoder.encode)
+        q = unit(encode_query([query])[0])
         hits = {}
         for mid, field, start, end, text, raw, source_hash in self.db.execute(
             'SELECT email_id,field,start,end,text,vector,source_hash FROM vectors WHERE archive=?', (archive,)

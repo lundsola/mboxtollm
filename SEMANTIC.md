@@ -1,7 +1,7 @@
 # Semantic retrieval pilot
 
 The new opt-in path is:
-TerminusDB Email -> local subject/body embeddings -> candidate retrieval ->
+TerminusDB Email -> local or Gemini subject/body embeddings -> candidate retrieval ->
 optional Jev evaluation -> TerminusDB RelationAssessment documents.
 The legacy API and web UI are unchanged. No live models or services run on import.
 
@@ -20,6 +20,9 @@ The legacy API and web UI are unchanged. No live models or services run on impor
   input hashes, model and question versions. They never become accepted facts.
 
 ## Running
+
+For Google-hosted embeddings without local weights, see [GEMINI.md](GEMINI.md).
+The local commands below remain supported; changing provider needs a new index.
 
 Install the existing sentence-transformers dependency and terminusdb-client in a
 virtual environment. Provision a local symmetric text embedding model and note
